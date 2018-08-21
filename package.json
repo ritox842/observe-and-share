@@ -1,0 +1,22 @@
+{
+  "name": "observe-and-share",
+  "version": "0.0.7",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha --reporter spec"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "RiToX",
+  "license": "ISC",
+  "dependencies": {
+    "ngx-take-until-destroy": "^4.1.0",
+    "rxjs": "^6.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^2.9.2"
+  }
+}
