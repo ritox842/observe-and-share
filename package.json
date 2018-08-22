@@ -13,7 +13,6 @@
   "author": "RiToX",
   "license": "ISC",
   "dependencies": {
-    "ngx-take-until-destroy": "^4.1.0",
     "rxjs": "^6.2.1"
   },
   "devDependencies": {

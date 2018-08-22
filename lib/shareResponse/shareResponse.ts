@@ -1,7 +1,6 @@
 import {Observable} from 'rxjs';
 import {share} from 'rxjs/operators';
 import {defer} from 'rxjs/internal/observable/defer';
-import {untilDestroyed} from 'ngx-take-until-destroy';
 
 const shareResponseObserverMap = new Map<string, Observable<any>>();
 const shareResponseSubscriberSet = new Set<string>();
@@ -16,11 +15,9 @@ export function shareResponse() {
         }
 
         descriptor.value = function () {
-            const args = [];
-            for (let i = 0; i < arguments.length; i++) {
-                args[i] = arguments[i];
-            }
-            const mapKey = `${methodName}_${args}`; //Generate unique key.
+            const args = getArgumentsAsArray(arguments);
+            const mapKey = `${methodName}_${args.toString()}`; //Generate unique key.
+
             if (isExist(shareResponseObserverMap, mapKey)) {
                 return shareResponseObserverMap.get(mapKey);
             } else {
@@ -50,7 +47,7 @@ export function shareResponse() {
                     .pipe(share());
 
                 /**Get deferred observable from resultObservable$*/
-                const deferResponse$ = getDeferredRepose(mapKey, resultObservable$, target);
+                const deferResponse$ = getDeferredRepose(mapKey, resultObservable$);
 
                 shareResponseObserverMap.set(mapKey, deferResponse$);
 
@@ -82,15 +79,12 @@ function isExist(cacheData: Map<string, Observable<any>> | Set<string>, mapKey: 
  * shareResponseObserverMap.
  * @param {string} mapKey
  * @param {Observable<any>} resultObservable$
- * @param context
  * @returns {Observable<any>}
  */
-function getDeferredRepose(mapKey: string, resultObservable$: Observable<any>, context) {
+function getDeferredRepose(mapKey: string, resultObservable$: Observable<any>) {
     return defer(() => {
         if (!isExist(shareResponseSubscriberSet, mapKey)) {
             resultObservable$
-                .pipe(
-                    untilDestroyed(context))
                 .subscribe(
                     () => null,
                     () => null,
@@ -99,6 +93,19 @@ function getDeferredRepose(mapKey: string, resultObservable$: Observable<any>, c
         }
         return resultObservable$;
     });
+}
+
+/**
+ * Loop through original method argument list
+ * and create an array of them.
+ * @param funcArguments
+ */
+function getArgumentsAsArray(funcArguments): any[] {
+    const args = [];
+    for (let i = 0; i < funcArguments.length; i++) {
+        args[i] = funcArguments[i];
+    }
+    return args;
 }
 
 /**

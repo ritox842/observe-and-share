@@ -1,10 +1,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var operators_1 = require("rxjs/operators");
 var defer_1 = require("rxjs/internal/observable/defer");
-var ngx_take_until_destroy_1 = require("ngx-take-until-destroy");
 var shareResponseObserverMap = new Map();
 var shareResponseSubscriberSet = new Set();
-function shareResponse(paramKey) {
+function shareResponse() {
     return function (target, methodName, descriptor) {
         var originalFunction = target[methodName];
         if (typeof descriptor.value !== 'function') {
@@ -12,11 +11,8 @@ function shareResponse(paramKey) {
             return descriptor;
         }
         descriptor.value = function () {
-            var args = [];
-            for (var i = 0; i < arguments.length; i++) {
-                args[i] = arguments[i];
-            }
-            var mapKey = methodName + "_" + args; //Generate unique key.
+            var args = getArgumentsAsArray(arguments);
+            var mapKey = methodName + "_" + args.toString(); //Generate unique key.
             if (isExist(shareResponseObserverMap, mapKey)) {
                 return shareResponseObserverMap.get(mapKey);
             }
@@ -41,8 +37,9 @@ function shareResponse(paramKey) {
                 var resultObservable$ = originalFunctionResult
                     .pipe(operators_1.share());
                 /**Get deferred observable from resultObservable$*/
-                var deferResponse$ = getDeferredRepose(mapKey, resultObservable$, target);
+                var deferResponse$ = getDeferredRepose(mapKey, resultObservable$);
                 shareResponseObserverMap.set(mapKey, deferResponse$);
+                console.log("Observables amount in map (in) - " + shareResponseObserverMap.size);
                 return deferResponse$;
             }
         };
@@ -72,17 +69,30 @@ function isExist(cacheData, mapKey) {
  * @param {Observable<any>} resultObservable$
  * @returns {Observable<any>}
  */
-function getDeferredRepose(mapKey, resultObservable$, context) {
+function getDeferredRepose(mapKey, resultObservable$) {
     return defer_1.defer(function () {
-        debugger;
         if (!isExist(shareResponseSubscriberSet, mapKey)) {
             resultObservable$
-                .pipe(ngx_take_until_destroy_1.untilDestroyed(context))
-                .subscribe(function () { return null; }, function () { return null; }, function () { return clearShareReposeObserverCache(mapKey); });
+                .subscribe(function () { return null; }, function () { return null; }, function () {
+                clearShareReposeObserverCache(mapKey);
+                console.log("Observables amount in map (out)- " + shareResponseObserverMap.size);
+            });
             shareResponseSubscriberSet.add(mapKey);
         }
         return resultObservable$;
     });
+}
+/**
+ * Loop through original method argument list
+ * and create an array of them.
+ * @param funcArguments
+ */
+function getArgumentsAsArray(funcArguments) {
+    var args = [];
+    for (var i = 0; i < funcArguments.length; i++) {
+        args[i] = funcArguments[i];
+    }
+    return args;
 }
 /**
  * Remove mapKey from shareResponseSubscriberSet and
