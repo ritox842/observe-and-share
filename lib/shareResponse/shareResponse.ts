@@ -1,4 +1,4 @@
-import {Observable} from 'rxjs';
+import {Observable, isObservable} from 'rxjs';
 import {share} from 'rxjs/operators';
 import {defer} from 'rxjs/internal/observable/defer';
 
@@ -24,23 +24,14 @@ export function shareResponse() {
                 /**Call original function and store result.*/
                 const originalFunctionResult = originalFunction.call(this, args);
 
-                /**Check if function return an observable or some other type of response.*/
-                const resultSubscriber$ = originalFunctionResult && originalFunctionResult._trySubscribe ?
-                    originalFunctionResult._trySubscribe() :
-                    null;
-
                 /**
-                 * For non subscribers response, Warn user and return the original
+                 * For non observable response, Warn user and return the original
                  * function response.
                  */
-                if (!resultSubscriber$) {
+                if (!isObservable(originalFunctionResult)) {
                     console.warn(`Share response received a non observable result from ${methodName} ${args ? `supplied with '${args}'` : ``}`);
-
                     return originalFunctionResult;
                 }
-
-                /**Unsubscribe from temp subscription*/
-                resultSubscriber$.unsubscribe();
 
                 /**Create shared observable instance*/
                 const resultObservable$ = originalFunctionResult
